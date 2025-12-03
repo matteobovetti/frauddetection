@@ -1,0 +1,266 @@
+services:
+  coordinator-server:
+    image: apache/fluss:0.8.0-incubating
+    command: coordinatorServer
+    depends_on:
+      - zookeeper
+      - rest
+    environment:
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper:2181
+        bind.listeners: INTERNAL://coordinator-server:9122, CLIENT://0.0.0.0:9123
+        advertised.listeners: INTERNAL://coordinator-server:9122, CLIENT://localhost:9123
+        internal.listener.name: INTERNAL
+        remote.data.dir: /tmp/fluss/remote-data
+        datalake.format: iceberg
+        datalake.iceberg.type: rest
+        datalake.iceberg.warehouse: s3://fluss/data/
+        datalake.iceberg.uri: http://rest:8181
+        datalake.iceberg.s3.endpoint: http://minio:9000
+        datalake.iceberg.s3.path-style-access: true
+        datalake.iceberg.s3.region: us-east-1
+        datalake.iceberg.s3.access-key-id: minioadmin
+        datalake.iceberg.s3.secret-access-key: minioadmin
+    ports:
+      - 9122:9122
+      - 9123:9123
+    volumes:
+      - shared-tmpfs:/tmp/fluss
+      - C:/Users/***/Documents/fluss/fluss_home/lib:/opt/fluss/lib
+      - C:/Users/***/Documents/fluss/fluss_home/plugins/iceberg:/opt/fluss/plugins/iceberg
+    networks:
+      - fluss-demo
+
+  tablet-server:
+    image: apache/fluss:0.8.0-incubating
+    command: tabletServer
+    depends_on:
+      - coordinator-server
+    environment:
+      - |
+        FLUSS_PROPERTIES=
+        zookeeper.address: zookeeper:2181
+        bind.listeners: INTERNAL://tablet-server:0, CLIENT://0.0.0.0:9124
+        advertised.listeners: CLIENT://localhost:9124
+        internal.listener.name: INTERNAL
+        tablet-server.id: 0
+        kv.snapshot.interval: 0s
+        data.dir: /tmp/fluss/data
+        remote.data.dir: /tmp/fluss/remote-data
+        datalake.format: iceberg
+        datalake.iceberg.type: rest
+        datalake.iceberg.warehouse: s3://fluss/data/
+        datalake.iceberg.uri: http://rest:8181
+        datalake.iceberg.s3.endpoint: http://minio:9000
+        datalake.iceberg.s3.path-style-access: true
+        datalake.iceberg.s3.region: us-east-1
+        datalake.iceberg.s3.access-key-id: minioadmin
+        datalake.iceberg.s3.secret-access-key: minioadmin
+    ports:
+      - 9124:9124
+    volumes:
+      - shared-tmpfs:/tmp/fluss
+      - C:/Users/***/Documents/fluss/fluss_home/lib:/opt/fluss/lib
+      - C:/Users/***/Documents/fluss/fluss_home/plugins/iceberg:/opt/fluss/plugins/iceberg
+    networks:
+      - fluss-demo
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_DOMAIN: minio
+    volumes:
+      - minio-data:/data
+    networks:
+      fluss-demo:
+        aliases:
+          - fluss.minio
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 2; done;
+        mc mb local/fluss || true;
+        mc policy set public local/fluss;
+        echo 'MinIO bucket fluss initialized';
+      "
+    restart: no
+    networks:
+      - fluss-demo
+
+  rest:
+    image: apache/iceberg-rest-fixture
+    container_name: iceberg-rest
+    ports:
+      - 8181:8181
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      CATALOG_WAREHOUSE: s3a://fluss/data/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+      CATALOG_S3_PATH_STYLE_ACCESS: true
+    networks:
+      - fluss-demo
+
+  flink-jobmanager:
+    image: flink:1.20.2
+    command: jobmanager
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      HADOOP_CONF_DIR: "/opt/flink/conf"
+      FLINK_MODE: jobmanager
+      FLINK_PROPERTIES: | 
+        pekko.cluster.name:flink
+        blob.server.port:6124
+        taskmanager.memory.process.size:1024m
+        parallelism.default:1
+        jobmanager.rpc.address:flink-jobmanager
+        rest.address:flink-jobmanager
+        jobmanager.hostname:flink-jobmanager
+        jobmanager.memory.process.size:1024m
+        numberOfTaskSlots:5
+        taskmanager.numberOfTaskSlots:5
+        jobmanager.rpc.port:6123
+        query.server.port:6125
+        rest.bind-address:0.0.0.0
+        jobmanager.bind-host:0.0.0.0
+    depends_on:
+      - coordinator-server
+      - tablet-server
+    ports:
+      - 8081:8081
+    volumes:
+      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+    networks:
+      - fluss-demo
+
+  flink-taskmanager-1:
+    image: flink:1.20.2
+    command: taskmanager
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      HADOOP_CONF_DIR: "/opt/flink/conf"
+      FLINK_MODE: jobmanager
+      FLINK_PROPERTIES: | 
+        pekko.cluster.name:flink
+        blob.server.port:6124
+        taskmanager.memory.process.size:1024m
+        parallelism.default:1
+        jobmanager.rpc.address:flink-jobmanager
+        rest.address:flink-jobmanager
+        jobmanager.hostname:flink-jobmanager
+        jobmanager.memory.process.size:1024m
+        numberOfTaskSlots:5
+        taskmanager.numberOfTaskSlots:5
+        jobmanager.rpc.port:6123
+        query.server.port:6125
+        rest.bind-address:0.0.0.0
+        jobmanager.bind-host:0.0.0.0
+    depends_on:
+      - flink-jobmanager
+    volumes:
+      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+    networks:
+      - fluss-demo
+
+  flink-taskmanager-2:
+    image: flink:1.20.2
+    command: taskmanager
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      HADOOP_CONF_DIR: "/opt/flink/conf"
+      FLINK_MODE: jobmanager
+      FLINK_PROPERTIES: | 
+        pekko.cluster.name:flink
+        blob.server.port:6124
+        taskmanager.memory.process.size:1024m
+        parallelism.default:1
+        jobmanager.rpc.address:flink-jobmanager
+        rest.address:flink-jobmanager
+        jobmanager.hostname:flink-jobmanager
+        jobmanager.memory.process.size:1024m
+        numberOfTaskSlots:5
+        jobmanager.rpc.port:6123
+        query.server.port:6125
+        rest.bind-address:0.0.0.0
+        jobmanager.bind-host:0.0.0.0
+    depends_on:
+      - flink-jobmanager
+    volumes:
+      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+    networks:
+      - fluss-demo
+
+  flink-taskmanager-3:
+    image: flink:1.20.2
+    command: taskmanager
+    environment:
+      HADOOP_CONF_DIR: "/opt/flink/conf"
+      FLINK_MODE: jobmanager
+      FLINK_PROPERTIES: | 
+        pekko.cluster.name:flink
+        blob.server.port:6124
+        taskmanager.memory.process.size:1024m
+        parallelism.default:1
+        jobmanager.rpc.address:flink-jobmanager
+        rest.address:flink-jobmanager
+        jobmanager.hostname:flink-jobmanager
+        jobmanager.memory.process.size:1024m
+        numberOfTaskSlots:5
+        jobmanager.rpc.port:6123
+        query.server.port:6125
+        rest.bind-address:0.0.0.0
+        jobmanager.bind-host:0.0.0.0
+    depends_on:
+      - flink-jobmanager
+    volumes:
+      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+    networks:
+      - fluss-demo
+
+  zookeeper:
+    image: zookeeper:3.9.2
+    restart: always
+    networks:
+      - fluss-demo
+
+volumes:
+  shared-tmpfs:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  minio-data:
+    driver: local
+
+
+networks:
+  fluss-demo:
+    driver: bridge
