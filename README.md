@@ -6,7 +6,7 @@ I created this repository to experiment with Apache Fluss (Incubating). Please n
 
 ---
 
-![arch](./img/flussArch.jpg)
+<img width="845" height="380" alt="flussArch" src="https://github.com/user-attachments/assets/b8a2dfa6-9f7c-4dfb-9343-69e14de27a27" />
 
 ---
 
@@ -74,7 +74,8 @@ The **Fluss Tiering Service** (a Flink Job provided by the Fluss ecosystem) appe
 
 ---
 
-<br><br>
+## 🔹 CMDs
+
 Fluss/Flik required JARs:<br>
 https://fluss.apache.org/docs/streaming-lakehouse/integrate-data-lakes/iceberg/<br><br>
 
