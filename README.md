@@ -18,6 +18,8 @@ Following my previous post introducing **Fluss**, here’s how I built a **Strea
 - Detect fraud
 - Serve data seamlessly across **hot (sub-second latency)** and **cold (minutes latency)** layers
 
+[Linkedin post](https://www.linkedin.com/posts/activity-7402102138476052480-Xe8q?utm_source=share&utm_medium=member_desktop&rcm=ACoAAD71668BPwA1sMmdXJo2b8_gg_eDOtgR-Ww)
+
 ---
 
 ## 🚀 Deployment Setup
