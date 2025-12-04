@@ -4,7 +4,77 @@
 Disclaimer:<br>
 I created this repository to experiment with Apache Fluss (Incubating). Please note that the cluster sizing, security configuration, fraud detection logic are intended for exploration only and are not production-ready.<br><br>
 
+---
 
+![arch](./img/flussArch.jpg)
+
+---
+
+# Apache Fluss: The Game Changer in Data Streaming (Part 2)
+
+Following my previous post introducing **Fluss**, here’s how I built a **Streamhouse architecture** leveraging **Fluss**, **Flink**, and **Iceberg** to:
+
+- Process bank transactions in real time
+- Detect fraud
+- Serve data seamlessly across **hot (sub-second latency)** and **cold (minutes latency)** layers
+
+---
+
+## 🚀 Deployment Setup
+Using **Docker Compose**, I deployed a small Fluss and Flink cluster.  
+I chose **MinIO** as the S3-compatible storage to hold Iceberg tables, and an **Iceberg REST Catalog** for metadata management.
+
+---
+
+## 🔹 Fluss Initialization & Data Generation
+Fluss Java Client creates three tables:
+
+1. **Transaction Log Table** (append-only)
+2. **Account Primary Table** (supports `INSERT`, `UPDATE`, `DELETE`)
+3. **Enriched Fraud Log Table** with `datalake` option enabled (append-only)
+
+When `datalake` option is enabled, Fluss automatically initializes an **Iceberg table** on MinIO through the REST Catalog for historical data.  
+Finally, the client generates transaction and account records and pushes them to Fluss.
+
+---
+
+## 🔍 Fraud Detection & Enrichment
+The **Flink-based fraud detection job**, developed to continuously stream transactions from Fluss, identifies fraudulent records in real time.
+
+- Once fraud is detected, the records are **enriched with the account name** by referencing the Account Primary Table.
+- This enrichment uses a **temporal streaming lookup join** on the Account table, which serves as a dimension.
+- Finally, the enriched fraud records are appended to the **Enriched Fraud Log Table**.
+
+---
+
+## 🏗 Tiering to Lakehouse
+The **Fluss Tiering Service** (a Flink Job provided by the Fluss ecosystem) appends and compacts enriched fraud into the **Iceberg table on MinIO**.
+
+---
+
+## ✅ Why I Consider Apache Fluss (Incubating) a True Game Changer in Data Streaming
+
+- **Queryable Tables**  
+  Unlike Apache Kafka, where topics are not queryable, Fluss Log Tables allow direct querying for real-time insights.
+
+- **No More External Caches**  
+  Eliminate the need to deploy/scale cache/DB/state for lookups—just use Fluss Primary Tables.
+
+- **Column Pruning for Streaming Reads**  
+  Fluss supports column pruning for Log Tables and Primary Key Table changelogs, reducing data reads and network costs—even during streaming reads.
+
+- **Automatic Tiering to Lakehouse**  
+  Real-time data is automatically compacted into Iceberg, Paimon, or Lance via a built-in Flink service, seamlessly bridging streaming and batch.
+
+- **Union Reads**  
+  Fluss enables combined reads of real-time and historical data (Fluss tables + Iceberg), delivering true real-time analytics without duplication.
+
+- **Cut Disk Storage Costs**  
+  Fluss offloads old data (Log Table segments and Primary Table snapshots) to remote storage, significantly reducing disk costs.
+
+---
+
+<br><br>
 Fluss/Flik required JARs:<br>
 https://fluss.apache.org/docs/streaming-lakehouse/integrate-data-lakes/iceberg/<br><br>
 
@@ -31,7 +101,9 @@ USE CATALOG fluss_catalog;<br>
 SET 'execution.runtime-mode' = 'batch';<br>
 SET 'sql-client.execution.result-mode' = 'tableau';<br>
 select * from fraud;<br>
-select * from fraud$lake;<br>
+select * from fraud$lake;<br><br>
+
+
 
 
 
