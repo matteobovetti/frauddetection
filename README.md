@@ -87,12 +87,10 @@ Fraud Job JAR packaging cmd:
 mvn package -f pom.xml
 ```
 
-
-Flink Job submit parameters:
+Jump in the flink job manager coordinator and run Flink Job submit with this command:
 ```bash
---parallelism 2 --fluss.bootstrap.servers coordinator-server:9122 --datalake.format iceberg --datalake.iceberg.type rest --datalake.iceberg.warehouse s3://fluss/data --datalake.iceberg.uri http://rest:8181 --datalake.iceberg.s3.endpoint http://minio:9000 --datalake.iceberg.s3.path-style-access true
+./bin/flink run ./lib/frauddetection-1.0-SNAPSHOT.jar --parallelism 2 --fluss.bootstrap.servers coordinator-server:9122 --datalake.format iceberg --datalake.iceberg.type rest --datalake.iceberg.warehouse s3://fluss/data --datalake.iceberg.uri http://rest:8181 --datalake.iceberg.s3.endpoint http://minio:9000 --datalake.iceberg.s3.path-style-access true
 ```
-
 
 Docker commands:
 ```bash

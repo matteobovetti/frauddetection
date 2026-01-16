@@ -27,8 +27,8 @@ services:
       - 9123:9123
     volumes:
       - shared-tmpfs:/tmp/fluss
-      - C:/Users/***/Documents/fluss/fluss_home/lib:/opt/fluss/lib
-      - C:/Users/***/Documents/fluss/fluss_home/plugins/iceberg:/opt/fluss/plugins/iceberg
+      - ./runtime/fluss_home/lib:/opt/fluss/lib
+      - ./runtime/fluss_home/plugins/iceberg:/opt/fluss/plugins/iceberg
     networks:
       - fluss-demo
 
@@ -61,8 +61,8 @@ services:
       - 9124:9124
     volumes:
       - shared-tmpfs:/tmp/fluss
-      - C:/Users/***/Documents/fluss/fluss_home/lib:/opt/fluss/lib
-      - C:/Users/***/Documents/fluss/fluss_home/plugins/iceberg:/opt/fluss/plugins/iceberg
+      - ./runtime/fluss_home/lib:/opt/fluss/lib
+      - ./runtime/fluss_home/plugins/iceberg:/opt/fluss/plugins/iceberg
     networks:
       - fluss-demo
 
@@ -116,7 +116,7 @@ services:
       - fluss-demo
 
   flink-jobmanager:
-    image: flink:1.20.2
+    image: flink:1.20.3
     command: jobmanager
     environment:
       AWS_ACCESS_KEY_ID: minioadmin
@@ -124,7 +124,7 @@ services:
       AWS_REGION: us-east-1
       HADOOP_CONF_DIR: "/opt/flink/conf"
       FLINK_MODE: jobmanager
-      FLINK_PROPERTIES: | 
+      FLINK_PROPERTIES: |
         pekko.cluster.name:flink
         blob.server.port:6124
         taskmanager.memory.process.size:1024m
@@ -145,14 +145,14 @@ services:
     ports:
       - 8081:8081
     volumes:
-      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+      - ./runtime/flink_home/lib:/opt/flink/lib
+      - ./runtime/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - ./runtime/flink_home/hadoop-3.3.5:/opt/hadoop
     networks:
       - fluss-demo
 
   flink-taskmanager-1:
-    image: flink:1.20.2
+    image: flink:1.20.3
     command: taskmanager
     environment:
       AWS_ACCESS_KEY_ID: minioadmin
@@ -160,7 +160,7 @@ services:
       AWS_REGION: us-east-1
       HADOOP_CONF_DIR: "/opt/flink/conf"
       FLINK_MODE: jobmanager
-      FLINK_PROPERTIES: | 
+      FLINK_PROPERTIES: |
         pekko.cluster.name:flink
         blob.server.port:6124
         taskmanager.memory.process.size:1024m
@@ -178,14 +178,14 @@ services:
     depends_on:
       - flink-jobmanager
     volumes:
-      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+      - ./runtime/flink_home/lib:/opt/flink/lib
+      - ./runtime/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - ./runtime/flink_home/hadoop-3.3.5:/opt/hadoop
     networks:
       - fluss-demo
 
   flink-taskmanager-2:
-    image: flink:1.20.2
+    image: flink:1.20.3
     command: taskmanager
     environment:
       AWS_ACCESS_KEY_ID: minioadmin
@@ -193,7 +193,7 @@ services:
       AWS_REGION: us-east-1
       HADOOP_CONF_DIR: "/opt/flink/conf"
       FLINK_MODE: jobmanager
-      FLINK_PROPERTIES: | 
+      FLINK_PROPERTIES: |
         pekko.cluster.name:flink
         blob.server.port:6124
         taskmanager.memory.process.size:1024m
@@ -210,19 +210,19 @@ services:
     depends_on:
       - flink-jobmanager
     volumes:
-      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+      - ./runtime/flink_home/lib:/opt/flink/lib
+      - ./runtime/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - ./runtime/flink_home/hadoop-3.3.5:/opt/hadoop
     networks:
       - fluss-demo
 
   flink-taskmanager-3:
-    image: flink:1.20.2
+    image: flink:1.20.3
     command: taskmanager
     environment:
       HADOOP_CONF_DIR: "/opt/flink/conf"
       FLINK_MODE: jobmanager
-      FLINK_PROPERTIES: | 
+      FLINK_PROPERTIES: |
         pekko.cluster.name:flink
         blob.server.port:6124
         taskmanager.memory.process.size:1024m
@@ -239,9 +239,9 @@ services:
     depends_on:
       - flink-jobmanager
     volumes:
-      - C:/Users/***/Documents/fluss/flink_home/lib:/opt/flink/lib
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
-      - C:/Users/***/Documents/fluss/flink_home/hadoop-3.3.5:/opt/hadoop
+      - ./runtime/flink_home/lib:/opt/flink/lib
+      - ./runtime/flink_home/hadoop-conf/core-site.xml:/opt/flink/conf/core-site.xml
+      - ./runtime/flink_home/hadoop-3.3.5:/opt/hadoop
     networks:
       - fluss-demo
 
@@ -259,7 +259,6 @@ volumes:
       device: tmpfs
   minio-data:
     driver: local
-
 
 networks:
   fluss-demo:
